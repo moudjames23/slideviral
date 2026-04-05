@@ -13,6 +13,9 @@ function EditorContent() {
   const searchParams = useSearchParams();
   const { applyTemplate, loadProject } = useSlideshowStore();
 
+  const saveProject = useSlideshowStore((s) => s.saveProject);
+
+  // Load template or project on mount
   useEffect(() => {
     const templateId = searchParams.get('template');
     const projectId = searchParams.get('project');
@@ -24,6 +27,14 @@ function EditorContent() {
       loadProject(projectId);
     }
   }, [searchParams, applyTemplate, loadProject]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      saveProject();
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [saveProject]);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem-5rem)] overflow-hidden">
