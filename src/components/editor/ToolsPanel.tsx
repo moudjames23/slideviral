@@ -13,8 +13,11 @@ import {
   Bold,
   Minus,
   Plus,
+  Settings,
 } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
+import { AIImageGenerator } from './AIImageGenerator';
+import { SettingsPanel } from './SettingsPanel';
 import type { TextOverlay } from '@/types';
 
 function generateId(): string {
@@ -26,6 +29,8 @@ export function ToolsPanel() {
   const { slideshow, activeSlideIndex, updateSlide } = useSlideshowStore();
   const activeSlide = slideshow.slides[activeSlideIndex];
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const selectedOverlay = activeSlide?.textOverlays.find((o) => o.id === selectedTextId);
 
@@ -123,7 +128,7 @@ export function ToolsPanel() {
           </button>
           <button
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
-            onClick={() => {/* TODO: AI generator modal */}}
+            onClick={() => setShowAIGenerator(true)}
           >
             <Sparkles className="h-4 w-4 text-primary" />
             Generate with AI
@@ -144,8 +149,30 @@ export function ToolsPanel() {
               Remove Image
             </button>
           )}
+
+          {/* Settings */}
+          <div className="mt-3 pt-3 border-t border-border">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Settings className="h-4 w-4" />
+              API Keys
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <AIImageGenerator
+        open={showAIGenerator}
+        onClose={() => setShowAIGenerator(false)}
+        onOpenSettings={() => {
+          setShowAIGenerator(false);
+          setShowSettings(true);
+        }}
+      />
+      <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* Text layers list */}
       {activeSlide.textOverlays.length > 0 && (
