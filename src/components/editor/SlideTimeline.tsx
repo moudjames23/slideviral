@@ -144,10 +144,16 @@ export function SlideTimeline() {
           <Plus className="h-5 w-5" />
         </button>
 
-        {/* Spacer for total duration */}
-        <div className="ml-auto shrink-0 flex items-center gap-2 pl-4 border-l border-border">
+        {/* Spacer for total duration + shortcuts hint */}
+        <div className="ml-auto shrink-0 flex items-center gap-4 pl-4 border-l border-border">
           <span className="text-xs text-muted-foreground">
             Total: {slideshow.slides.reduce((sum, s) => sum + s.duration, 0)}s
+          </span>
+          <span className="hidden lg:flex items-center gap-2 text-[10px] text-muted-foreground/60">
+            <kbd className="rounded border border-border px-1 py-0.5 font-mono">←→</kbd> navigate
+            <kbd className="rounded border border-border px-1 py-0.5 font-mono">N</kbd> new
+            <kbd className="rounded border border-border px-1 py-0.5 font-mono">⌘S</kbd> save
+            <kbd className="rounded border border-border px-1 py-0.5 font-mono">⌘D</kbd> duplicate
           </span>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Sparkles, LayoutGrid, Zap, ArrowRight, Trash2 } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
 
@@ -15,7 +16,12 @@ export default function Home() {
   return (
     <div className="mx-auto max-w-screen-lg px-4 py-16">
       {/* Hero */}
-      <div className="flex flex-col items-center text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col items-center text-center"
+      >
         <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
@@ -45,10 +51,15 @@ export default function Home() {
             Browse templates
           </Link>
         </div>
-      </div>
+      </motion.div>
 
       {/* Features */}
-      <div className="mt-24 grid gap-6 sm:grid-cols-3">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="mt-24 grid gap-6 sm:grid-cols-3"
+      >
         {[
           {
             title: 'Trend templates',
@@ -77,7 +88,7 @@ export default function Home() {
             <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
           </div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Saved Projects */}
       {savedProjects.length > 0 && (

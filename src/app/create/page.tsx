@@ -4,6 +4,7 @@ import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSlideshowStore } from '@/lib/store';
 import { trendTemplates } from '@/lib/templates/registry';
+import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { SlideCanvas } from '@/components/editor/SlideCanvas';
 import { SlideSettings } from '@/components/editor/SlideSettings';
 import { ToolsPanel } from '@/components/editor/ToolsPanel';
@@ -14,6 +15,9 @@ function EditorContent() {
   const { applyTemplate, loadProject } = useSlideshowStore();
 
   const saveProject = useSlideshowStore((s) => s.saveProject);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts();
 
   // Load template or project on mount
   useEffect(() => {

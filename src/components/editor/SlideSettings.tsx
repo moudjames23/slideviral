@@ -1,6 +1,7 @@
 'use client';
 
 import { Clock, ArrowLeftRight, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { useSlideshowStore } from '@/lib/store';
 import { ASPECT_RATIOS } from '@/types';
 import type { AspectRatio, SlideTransition } from '@/types';
@@ -41,7 +42,7 @@ export function SlideSettings() {
           className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <button
-          onClick={saveProject}
+          onClick={() => { saveProject(); toast.success('Project saved'); }}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
         >
           <Save className="h-3 w-3" />
