@@ -248,7 +248,42 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
     const state = get();
     const project = { ...state.slideshow, updatedAt: Date.now() };
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`slideviral-project-${project.id}`, JSON.stringify(project));
+      // Strip large data URLs from slides to avoid localStorage quota issues.
+      // Only keep external URLs (http/https). Data URLs (base64 images) are
+      // too large for the ~5MB localStorage limit.
+      const lightweight = {
+        ...project,
+        slides: project.slides.map((s) => ({
+          ...s,
+          imageUrl: s.imageUrl?.startsWith('data:') ? undefined : s.imageUrl,
+          imageFile: undefined, // File objects aren't serializable
+        })),
+      };
+      try {
+        localStorage.setItem(
+          `slideviral-project-${project.id}`,
+          JSON.stringify(lightweight),
+        );
+      } catch (e) {
+        // If it still exceeds quota, save without any images
+        const minimal = {
+          ...project,
+          slides: project.slides.map((s) => ({
+            ...s,
+            imageUrl: undefined,
+            imageFile: undefined,
+          })),
+        };
+        try {
+          localStorage.setItem(
+            `slideviral-project-${project.id}`,
+            JSON.stringify(minimal),
+          );
+        } catch {
+          console.warn('Failed to save project: localStorage quota exceeded');
+          return;
+        }
+      }
       const list = JSON.parse(localStorage.getItem('slideviral-projects') || '[]');
       const existing = list.findIndex((p: { id: string }) => p.id === project.id);
       const meta = { id: project.id, name: project.name, updatedAt: project.updatedAt };
