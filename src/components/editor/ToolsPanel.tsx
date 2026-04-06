@@ -15,6 +15,8 @@ import {
   Plus,
   Settings,
   Music,
+  Play,
+  Pause,
 } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
 import { AIImageGenerator } from './AIImageGenerator';
@@ -28,12 +30,14 @@ function generateId(): string {
 
 export function ToolsPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { slideshow, activeSlideIndex, updateSlide } = useSlideshowStore();
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+  const { slideshow, activeSlideIndex, updateSlide, selectedAudioUrl, selectedAudioName, setSelectedAudio } = useSlideshowStore();
   const activeSlide = slideshow.slides[activeSlideIndex];
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
   const selectedOverlay = activeSlide?.textOverlays.find((o) => o.id === selectedTextId);
 
@@ -155,12 +159,61 @@ export function ToolsPanel() {
 
           {/* Music & Settings */}
           <div className="mt-3 pt-3 border-t border-border space-y-1">
+            {/* Selected audio mini-player */}
+            {selectedAudioUrl && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 mb-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (audioPreviewRef.current) {
+                        audioPreviewRef.current.pause();
+                      }
+                      if (isPreviewPlaying) {
+                        setIsPreviewPlaying(false);
+                        return;
+                      }
+                      // Use proxy for external URLs
+                      const url = selectedAudioUrl.startsWith('blob:') || selectedAudioUrl.startsWith('data:')
+                        ? selectedAudioUrl
+                        : `/api/proxy-audio?url=${encodeURIComponent(selectedAudioUrl)}`;
+                      const audio = new Audio(url);
+                      audio.addEventListener('ended', () => setIsPreviewPlaying(false));
+                      audio.play().catch(() => setIsPreviewPlaying(false));
+                      audioPreviewRef.current = audio;
+                      setIsPreviewPlaying(true);
+                    }}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                  >
+                    {isPreviewPlaying ? (
+                      <Pause className="h-3 w-3" />
+                    ) : (
+                      <Play className="h-3 w-3 ml-0.5" />
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium truncate">{selectedAudioName}</p>
+                    <p className="text-[9px] text-primary">Will play in export</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (audioPreviewRef.current) audioPreviewRef.current.pause();
+                      setSelectedAudio(null, null);
+                      setIsPreviewPlaying(false);
+                    }}
+                    className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={() => setShowMusic(true)}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
             >
               <Music className="h-4 w-4 text-muted-foreground" />
-              Music
+              {selectedAudioUrl ? 'Change Music' : 'Music'}
             </button>
             <button
               onClick={() => setShowSettings(true)}

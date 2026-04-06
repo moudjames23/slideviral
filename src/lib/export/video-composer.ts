@@ -51,21 +51,35 @@ export async function composeVideo(
   const requestFrame = videoTrack.requestFrame?.bind(videoTrack);
 
   // Mix in audio if provided
-  let audioElement: HTMLAudioElement | null = null;
+  let audioCtx: AudioContext | null = null;
+  let audioSourceNode: AudioBufferSourceNode | null = null;
   if (audioUrl) {
     try {
-      audioElement = new Audio(audioUrl);
-      audioElement.crossOrigin = 'anonymous';
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaElementSource(audioElement);
+      // Fetch audio through proxy to avoid CORS
+      const proxyUrl = audioUrl.startsWith('blob:') || audioUrl.startsWith('data:')
+        ? audioUrl // local files don't need proxy
+        : `/api/proxy-audio?url=${encodeURIComponent(audioUrl)}`;
+
+      const audioResponse = await fetch(proxyUrl);
+      const audioArrayBuffer = await audioResponse.arrayBuffer();
+
+      audioCtx = new AudioContext();
+      const audioBuffer = await audioCtx.decodeAudioData(audioArrayBuffer);
+
       const dest = audioCtx.createMediaStreamDestination();
-      source.connect(dest);
+      audioSourceNode = audioCtx.createBufferSource();
+      audioSourceNode.buffer = audioBuffer;
+      audioSourceNode.connect(dest);
+
       // Add audio track to the recording stream
       const audioTrack = dest.stream.getAudioTracks()[0];
       if (audioTrack) stream.addTrack(audioTrack);
-    } catch {
-      console.warn('Could not add audio to export');
-      audioElement = null;
+
+      onProgress?.({ phase: 'rendering', percent: 35, message: 'Audio loaded...' });
+    } catch (e) {
+      console.warn('Could not add audio to export:', e);
+      audioCtx = null;
+      audioSourceNode = null;
     }
   }
 
@@ -95,9 +109,8 @@ export async function composeVideo(
     mediaRecorder.start(100); // collect data every 100ms
 
     // Start audio playback in sync with recording
-    if (audioElement) {
-      audioElement.currentTime = 0;
-      audioElement.play().catch(() => {});
+    if (audioSourceNode) {
+      audioSourceNode.start(0);
     }
 
     onProgress?.({ phase: 'encoding', percent: 30, message: 'Encoding video...' });
@@ -121,9 +134,11 @@ export async function composeVideo(
       },
     ).then(() => {
       // Stop audio
-      if (audioElement) {
-        audioElement.pause();
-        audioElement = null;
+      if (audioSourceNode) {
+        try { audioSourceNode.stop(); } catch { /* already stopped */ }
+      }
+      if (audioCtx) {
+        audioCtx.close().catch(() => {});
       }
       setTimeout(() => {
         mediaRecorder.stop();
