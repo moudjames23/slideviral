@@ -208,6 +208,29 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
       isAppPromo: ts.isAppPromo,
     }));
 
+    // Auto-select music: fetch trending sounds and pick one matching the template mood
+    const templateMood =
+      template.tags?.includes('dreamy') || template.tags?.includes('emotional') ? 'dreamy'
+      : template.tags?.includes('energetic') || template.tags?.includes('edgy') ? 'energetic'
+      : template.tags?.includes('chill') || template.tags?.includes('casual') ? 'chill'
+      : template.category === 'comparison' || template.category === 'reaction' ? 'confident'
+      : 'dreamy';
+
+    // Fire-and-forget: fetch trending sounds and auto-select
+    fetch(`/api/trending-sounds?mood=${templateMood}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const sounds = (data.sounds || []) as Array<{ title: string; artist: string; previewUrl: string | null; trending: boolean }>;
+        const best = sounds.find((s) => s.trending && s.previewUrl) || sounds.find((s) => s.previewUrl);
+        if (best?.previewUrl) {
+          set({
+            selectedAudioUrl: best.previewUrl,
+            selectedAudioName: `${best.title} — ${best.artist}`,
+          });
+        }
+      })
+      .catch(() => {}); // silently fail if offline
+
     set({
       slideshow: {
         id: generateId(),
