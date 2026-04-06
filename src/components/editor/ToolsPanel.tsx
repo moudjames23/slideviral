@@ -14,10 +14,12 @@ import {
   Minus,
   Plus,
   Settings,
+  Music,
 } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
 import { AIImageGenerator } from './AIImageGenerator';
 import { SettingsPanel } from './SettingsPanel';
+import { MusicPanel } from './MusicPanel';
 import type { TextOverlay } from '@/types';
 
 function generateId(): string {
@@ -31,6 +33,7 @@ export function ToolsPanel() {
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
 
   const selectedOverlay = activeSlide?.textOverlays.find((o) => o.id === selectedTextId);
 
@@ -150,8 +153,15 @@ export function ToolsPanel() {
             </button>
           )}
 
-          {/* Settings */}
-          <div className="mt-3 pt-3 border-t border-border">
+          {/* Music & Settings */}
+          <div className="mt-3 pt-3 border-t border-border space-y-1">
+            <button
+              onClick={() => setShowMusic(true)}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <Music className="h-4 w-4 text-muted-foreground" />
+              Music
+            </button>
             <button
               onClick={() => setShowSettings(true)}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -163,7 +173,8 @@ export function ToolsPanel() {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Modals / Panels */}
+      <MusicPanel open={showMusic} onClose={() => setShowMusic(false)} />
       <AIImageGenerator
         open={showAIGenerator}
         onClose={() => setShowAIGenerator(false)}

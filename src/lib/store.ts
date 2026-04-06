@@ -318,6 +318,12 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
       return { ...s, imageUrl };
     });
 
+    // Don't overwrite if a template was applied while we were loading images
+    const currentState = get();
+    if (currentState.activeTemplate || currentState.slideshow.templateId) {
+      return;
+    }
+
     set({
       slideshow: { ...slideshow, slides },
       activeSlideIndex: 0,
@@ -363,8 +369,16 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
   restoreLastProject: async () => {
     if (typeof window === 'undefined') return;
 
+    // Don't overwrite if a template was already applied (race condition guard)
+    const currentState = get();
+    if (currentState.activeTemplate || currentState.slideshow.templateId) {
+      set({ hydrated: true });
+      return;
+    }
+
     const lastId = localStorage.getItem('slideviral-last-project');
     if (lastId) {
+      // Check again after async load — template may have been applied while we were loading
       await get().loadProject(lastId);
     }
 

@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useSlideshowStore } from '@/lib/store';
 import { trendTemplates } from '@/lib/templates/registry';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -11,48 +10,62 @@ import { ToolsPanel } from '@/components/editor/ToolsPanel';
 import { SlideTimeline } from '@/components/editor/SlideTimeline';
 import { ExportDialog } from '@/components/editor/ExportDialog';
 
-function EditorContent() {
-  const searchParams = useSearchParams();
-  const { applyTemplate, loadProject, restoreLastProject } = useSlideshowStore();
+export default function CreatePage() {
   const saveProject = useSlideshowStore((s) => s.saveProject);
-  const hydrated = useSlideshowStore((s) => s.hydrated);
   const [showExport, setShowExport] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Load template, project, or restore last session on mount
+  // Initialize: read URL params and apply template/project/restore
   useEffect(() => {
-    const templateId = searchParams.get('template');
-    const projectId = searchParams.get('project');
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const templateId = params.get('template');
+      const projectId = params.get('project');
+      const store = useSlideshowStore.getState();
 
-    if (templateId) {
-      const template = trendTemplates.find((t) => t.id === templateId);
-      if (template) applyTemplate(template);
-    } else if (projectId) {
-      loadProject(projectId);
-    } else {
-      // No explicit template/project — restore the last active project
-      restoreLastProject();
+      if (templateId) {
+        const template = trendTemplates.find((t) => t.id === templateId);
+        if (template) store.applyTemplate(template);
+      } else if (projectId) {
+        await store.loadProject(projectId);
+      } else {
+        await store.restoreLastProject();
+      }
+
+      // Restore API keys
+      try {
+        const keys = localStorage.getItem('slideviral-api-keys');
+        if (keys) useSlideshowStore.setState({ apiKeys: JSON.parse(keys) });
+      } catch { /* ignore */ }
+
+      setReady(true);
     }
-  }, [searchParams, applyTemplate, loadProject, restoreLastProject]);
+    init();
+  }, []);
 
   // Auto-save every 30 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      saveProject();
-    }, 30_000);
+    if (!ready) return;
+    const interval = setInterval(() => saveProject(), 30_000);
     return () => clearInterval(interval);
-  }, [saveProject]);
+  }, [saveProject, ready]);
 
   // Listen for export toggle from header
   useEffect(() => {
-    function handleToggleExport() {
-      setShowExport((prev) => !prev);
-    }
-    window.addEventListener('slideviral:toggle-export', handleToggleExport);
-    return () => window.removeEventListener('slideviral:toggle-export', handleToggleExport);
+    const handler = () => setShowExport((prev) => !prev);
+    window.addEventListener('slideviral:toggle-export', handler);
+    return () => window.removeEventListener('slideviral:toggle-export', handler);
   }, []);
+
+  if (!ready) {
+    return (
+      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading editor...</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -61,24 +74,8 @@ function EditorContent() {
         <SlideCanvas />
         <ToolsPanel />
       </div>
-      <ExportDialog open={showExport} onClose={() => setShowExport(false)} />
-    </>
-  );
-}
-
-export default function CreatePage() {
-  return (
-    <>
-      <Suspense
-        fallback={
-          <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
-            <div className="text-sm text-muted-foreground">Loading editor...</div>
-          </div>
-        }
-      >
-        <EditorContent />
-      </Suspense>
       <SlideTimeline />
+      <ExportDialog open={showExport} onClose={() => setShowExport(false)} />
     </>
   );
 }
