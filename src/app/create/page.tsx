@@ -40,6 +40,20 @@ export default function CreatePage() {
         if (keys) useSlideshowStore.setState({ apiKeys: JSON.parse(keys) });
       } catch { /* ignore */ }
 
+      // Always restore saved audio selection (overrides auto-select from template)
+      try {
+        const savedAudio = localStorage.getItem('slideviral-audio');
+        if (savedAudio) {
+          const { url, name } = JSON.parse(savedAudio);
+          if (url) {
+            useSlideshowStore.setState({
+              selectedAudioUrl: url,
+              selectedAudioName: name,
+            });
+          }
+        }
+      } catch { /* ignore */ }
+
       setReady(true);
     }
     init();
