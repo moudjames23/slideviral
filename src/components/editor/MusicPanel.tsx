@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
+import { getPlayableAudioUrl } from '@/lib/audio-utils';
 
 interface TrendingSound {
   id: string;
@@ -93,7 +94,9 @@ export function MusicPanel({ open, onClose }: MusicPanelProps) {
       return;
     }
 
-    const audio = new Audio(sound.previewUrl);
+    const playUrl = getPlayableAudioUrl(sound.previewUrl);
+    if (!playUrl) return;
+    const audio = new Audio(playUrl);
     audio.addEventListener('ended', () => setPlayingId(null));
     audio.play().catch(() => {});
     audioRef.current = audio;
@@ -155,7 +158,9 @@ export function MusicPanel({ open, onClose }: MusicPanelProps) {
                   onClick={() => {
                     if (audioRef.current) audioRef.current.pause();
                     if (playingId === 'selected') { setPlayingId(null); return; }
-                    const a = new Audio(selectedAudioUrl);
+                    const playUrl = getPlayableAudioUrl(selectedAudioUrl);
+                    if (!playUrl) return;
+                    const a = new Audio(playUrl);
                     a.addEventListener('ended', () => setPlayingId(null));
                     a.play().catch(() => {});
                     audioRef.current = a;

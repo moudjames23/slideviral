@@ -3,6 +3,7 @@
 import type { Slide, AspectRatio } from '@/types';
 import { ASPECT_RATIOS } from '@/types';
 import { renderSlideToCanvas } from './renderer';
+import { getPlayableAudioUrl } from '@/lib/audio-utils';
 
 export type VideoProgress = {
   phase: 'rendering' | 'encoding' | 'done' | 'error';
@@ -56,9 +57,8 @@ export async function composeVideo(
   if (audioUrl) {
     try {
       // Fetch audio through proxy to avoid CORS
-      const proxyUrl = audioUrl.startsWith('blob:') || audioUrl.startsWith('data:')
-        ? audioUrl // local files don't need proxy
-        : `/api/proxy-audio?url=${encodeURIComponent(audioUrl)}`;
+      const proxyUrl = getPlayableAudioUrl(audioUrl);
+      if (!proxyUrl) throw new Error('No audio URL');
 
       const audioResponse = await fetch(proxyUrl);
       const audioArrayBuffer = await audioResponse.arrayBuffer();

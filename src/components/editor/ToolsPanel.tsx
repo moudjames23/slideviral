@@ -19,6 +19,7 @@ import {
   Pause,
 } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
+import { getPlayableAudioUrl } from '@/lib/audio-utils';
 import { AIImageGenerator } from './AIImageGenerator';
 import { SettingsPanel } from './SettingsPanel';
 import { MusicPanel } from './MusicPanel';
@@ -172,11 +173,9 @@ export function ToolsPanel() {
                         setIsPreviewPlaying(false);
                         return;
                       }
-                      // Use proxy for external URLs
-                      const url = selectedAudioUrl.startsWith('blob:') || selectedAudioUrl.startsWith('data:')
-                        ? selectedAudioUrl
-                        : `/api/proxy-audio?url=${encodeURIComponent(selectedAudioUrl)}`;
-                      const audio = new Audio(url);
+                      const playUrl = getPlayableAudioUrl(selectedAudioUrl);
+                      if (!playUrl) return;
+                      const audio = new Audio(playUrl);
                       audio.addEventListener('ended', () => setIsPreviewPlaying(false));
                       audio.play().catch(() => setIsPreviewPlaying(false));
                       audioPreviewRef.current = audio;
