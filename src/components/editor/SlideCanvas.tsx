@@ -235,7 +235,7 @@ export function SlideCanvas() {
       {/* Slide info + preview button */}
       <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent('slideviral:toggle-preview'))}
+          onClick={() => useSlideshowStore.getState().setShowPreview(true)}
           className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-primary font-medium transition-colors hover:bg-primary/20"
         >
           <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>

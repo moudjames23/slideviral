@@ -13,8 +13,9 @@ import { PreviewPlayer } from '@/components/editor/PreviewPlayer';
 
 export default function CreatePage() {
   const saveProject = useSlideshowStore((s) => s.saveProject);
+  const showPreview = useSlideshowStore((s) => s.showPreview);
+  const setShowPreview = useSlideshowStore((s) => s.setShowPreview);
   const [showExport, setShowExport] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [ready, setReady] = useState(false);
 
   useKeyboardShortcuts();
@@ -68,16 +69,11 @@ export default function CreatePage() {
     return () => clearInterval(interval);
   }, [saveProject, ready]);
 
-  // Listen for export/preview toggle events
+  // Listen for export toggle from header
   useEffect(() => {
-    const exportHandler = () => setShowExport((prev) => !prev);
-    const previewHandler = () => setShowPreview((prev) => !prev);
-    window.addEventListener('slideviral:toggle-export', exportHandler);
-    window.addEventListener('slideviral:toggle-preview', previewHandler);
-    return () => {
-      window.removeEventListener('slideviral:toggle-export', exportHandler);
-      window.removeEventListener('slideviral:toggle-preview', previewHandler);
-    };
+    const handler = () => setShowExport((prev) => !prev);
+    window.addEventListener('slideviral:toggle-export', handler);
+    return () => window.removeEventListener('slideviral:toggle-export', handler);
   }, []);
 
   if (!ready) {

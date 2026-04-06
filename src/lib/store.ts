@@ -32,6 +32,8 @@ interface SlideshowState {
   slideshow: Slideshow;
   activeSlideIndex: number;
   hydrated: boolean;
+  showPreview: boolean;
+  setShowPreview: (show: boolean) => void;
 
   // Slide actions
   setActiveSlide: (index: number) => void;
@@ -95,6 +97,8 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
   slideshow: { ...defaultSlideshow },
   activeSlideIndex: 0,
   hydrated: false,
+  showPreview: false,
+  setShowPreview: (show) => set({ showPreview: show }),
 
   setActiveSlide: (index) => set({ activeSlideIndex: index }),
 
