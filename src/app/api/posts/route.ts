@@ -54,11 +54,20 @@ export async function POST(request: NextRequest) {
   }
 
   const now = Date.now();
+  const defaultSlide = {
+    id: generateId(),
+    textOverlays: [],
+    duration: 3,
+    transition: 'fade',
+    backgroundColor: '#000000',
+    isAppPromo: false,
+  };
+  const defaultData = { slides: [defaultSlide], aspectRatio: '9:16' };
   const post = {
     id: body.id || generateId(),
     accountId,
     name: (name || 'Untitled Post').trim(),
-    slideshowData: JSON.stringify(slideshowData || { slides: [], aspectRatio: '9:16' }),
+    slideshowData: JSON.stringify(slideshowData || defaultData),
     createdAt: now,
     updatedAt: now,
   };

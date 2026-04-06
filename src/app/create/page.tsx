@@ -56,12 +56,22 @@ export default function CreatePage() {
             return { ...s, imageUrl };
           });
 
+          // Ensure at least one slide exists
+          const finalSlides = slides.length > 0 ? slides : [{
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            textOverlays: [],
+            duration: 3,
+            transition: 'fade' as const,
+            backgroundColor: '#000000',
+            isAppPromo: false,
+          }];
+
           store.setSlideshowName(post.name);
           useSlideshowStore.setState({
             slideshow: {
               id: post.id,
               name: post.name,
-              slides,
+              slides: finalSlides,
               createdAt: post.createdAt,
               updatedAt: post.updatedAt,
               aspectRatio: data.aspectRatio || '9:16',
