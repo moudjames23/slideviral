@@ -270,6 +270,14 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
 
   setSelectedAudio: (url, name) => {
     set({ selectedAudioUrl: url, selectedAudioName: name });
+    // Persist to localStorage (only external URLs, not blob:)
+    if (typeof window !== 'undefined') {
+      if (url && !url.startsWith('blob:')) {
+        localStorage.setItem('slideviral-audio', JSON.stringify({ url, name }));
+      } else if (!url) {
+        localStorage.removeItem('slideviral-audio');
+      }
+    }
   },
 
   // Export
@@ -422,6 +430,15 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
     try {
       const keys = localStorage.getItem('slideviral-api-keys');
       if (keys) set({ apiKeys: JSON.parse(keys) });
+    } catch { /* ignore */ }
+
+    // Restore selected audio
+    try {
+      const audio = localStorage.getItem('slideviral-audio');
+      if (audio) {
+        const { url, name } = JSON.parse(audio);
+        if (url) set({ selectedAudioUrl: url, selectedAudioName: name });
+      }
     } catch { /* ignore */ }
 
     set({ hydrated: true });

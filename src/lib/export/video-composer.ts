@@ -25,6 +25,8 @@ export async function composeVideo(
   const fps = 30;
   const frameDurationMs = 1000 / fps; // ~33.3ms per frame
 
+  console.log('[VideoComposer] audioUrl:', audioUrl ? audioUrl.substring(0, 60) + '...' : 'NULL');
+
   onProgress?.({ phase: 'rendering', percent: 0, message: 'Preparing slides...' });
 
   // Render all slides to canvases
@@ -78,10 +80,11 @@ export async function composeVideo(
       audioSourceNode.connect(audioCtx.destination);
 
       audioTrack = dest.stream.getAudioTracks()[0] || null;
+      console.log('[VideoComposer] Audio decoded:', audioBuffer.duration, 's, track:', audioTrack?.readyState);
 
       onProgress?.({ phase: 'rendering', percent: 35, message: 'Audio loaded...' });
     } catch (e) {
-      console.warn('Could not prepare audio for export:', e);
+      console.warn('[VideoComposer] Could not prepare audio:', e);
       audioCtx = null;
       audioSourceNode = null;
       audioTrack = null;
@@ -93,6 +96,7 @@ export async function composeVideo(
   const combinedStream = new MediaStream();
   combinedStream.addTrack(videoTrack);
   if (audioTrack) combinedStream.addTrack(audioTrack);
+  console.log('[VideoComposer] Combined tracks:', combinedStream.getTracks().map(t => `${t.kind}:${t.readyState}`).join(', '));
 
   const mediaRecorder = new MediaRecorder(combinedStream, {
     mimeType: getSupportedMimeType(),

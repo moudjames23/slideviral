@@ -46,9 +46,10 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
     setIsExporting(true);
     setError(null);
     try {
-      for (let i = 0; i < slideshow.slides.length; i++) {
-        const blob = await exportSlideAsPng(slideshow.slides[i], slideshow.aspectRatio);
-        downloadBlob(blob, `${slideshow.name}_slide_${i + 1}.png`);
+      const s = useSlideshowStore.getState().slideshow;
+      for (let i = 0; i < s.slides.length; i++) {
+        const blob = await exportSlideAsPng(s.slides[i], s.aspectRatio);
+        downloadBlob(blob, `${s.name}_slide_${i + 1}.png`);
         await new Promise((r) => setTimeout(r, 300));
       }
       setProgress({ phase: 'done', percent: 100, message: 'Images downloaded!' });
@@ -57,7 +58,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [slideshow]);
+  }, []);
 
   const handleExportVideo = useCallback(async () => {
     setIsExporting(true);
@@ -65,16 +66,19 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
     setProgress({ phase: 'rendering', percent: 0, message: 'Starting...' });
 
     try {
-      const blob = await composeVideo(slideshow.slides, slideshow.aspectRatio, setProgress, selectedAudioUrl);
+      // Read audio URL fresh from the store to avoid stale closure
+      const currentAudioUrl = useSlideshowStore.getState().selectedAudioUrl;
+      const currentSlideshow = useSlideshowStore.getState().slideshow;
+      const blob = await composeVideo(currentSlideshow.slides, currentSlideshow.aspectRatio, setProgress, currentAudioUrl);
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      downloadBlob(blob, `${slideshow.name}.${ext}`);
+      downloadBlob(blob, `${currentSlideshow.name}.${ext}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Video export failed');
       setProgress({ phase: 'error', percent: 0, message: 'Failed' });
     } finally {
       setIsExporting(false);
     }
-  }, [slideshow]);
+  }, []);
 
   const handleExport = useCallback(() => {
     setProgress(null);
