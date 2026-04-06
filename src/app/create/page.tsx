@@ -9,10 +9,12 @@ import { SlideSettings } from '@/components/editor/SlideSettings';
 import { ToolsPanel } from '@/components/editor/ToolsPanel';
 import { SlideTimeline } from '@/components/editor/SlideTimeline';
 import { ExportDialog } from '@/components/editor/ExportDialog';
+import { PreviewPlayer } from '@/components/editor/PreviewPlayer';
 
 export default function CreatePage() {
   const saveProject = useSlideshowStore((s) => s.saveProject);
   const [showExport, setShowExport] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [ready, setReady] = useState(false);
 
   useKeyboardShortcuts();
@@ -89,7 +91,18 @@ export default function CreatePage() {
         <ToolsPanel />
       </div>
       <SlideTimeline />
+
+      {/* Preview button — floating above timeline */}
+      <button
+        onClick={() => setShowPreview(true)}
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105"
+      >
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Preview
+      </button>
+
       <ExportDialog open={showExport} onClose={() => setShowExport(false)} />
+      <PreviewPlayer open={showPreview} onClose={() => setShowPreview(false)} />
     </>
   );
 }
