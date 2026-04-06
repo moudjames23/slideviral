@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { saveProjectImages, loadProjectImages, deleteProjectImages } from '@/lib/storage/image-db';
 import type {
   Slide,
   Slideshow,
@@ -30,6 +31,7 @@ interface SlideshowState {
   // Current slideshow
   slideshow: Slideshow;
   activeSlideIndex: number;
+  hydrated: boolean;
 
   // Slide actions
   setActiveSlide: (index: number) => void;
@@ -62,9 +64,10 @@ interface SlideshowState {
   // Projects
   savedProjects: Array<{ id: string; name: string; updatedAt: number }>;
   saveProject: () => void;
-  loadProject: (id: string) => void;
+  loadProject: (id: string) => Promise<void>;
   deleteProject: (id: string) => void;
   loadProjectList: () => void;
+  restoreLastProject: () => Promise<void>;
 }
 
 const defaultSlideshow: Slideshow = {
@@ -86,6 +89,7 @@ const defaultExportConfig: ExportConfig = {
 export const useSlideshowStore = create<SlideshowState>((set, get) => ({
   slideshow: { ...defaultSlideshow },
   activeSlideIndex: 0,
+  hydrated: false,
 
   setActiveSlide: (index) => set({ activeSlideIndex: index }),
 
@@ -248,68 +252,96 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
     const state = get();
     const project = { ...state.slideshow, updatedAt: Date.now() };
     if (typeof window !== 'undefined') {
-      // Strip large data URLs from slides to avoid localStorage quota issues.
-      // Only keep external URLs (http/https). Data URLs (base64 images) are
-      // too large for the ~5MB localStorage limit.
+      // Save images to IndexedDB (async, fire-and-forget)
+      saveProjectImages(project.id, project.slides).catch(() => {});
+
+      // Save project metadata + slide config (without image data) to localStorage
       const lightweight = {
         ...project,
         slides: project.slides.map((s) => ({
           ...s,
-          imageUrl: s.imageUrl?.startsWith('data:') ? undefined : s.imageUrl,
-          imageFile: undefined, // File objects aren't serializable
+          // Keep a marker that an image exists, but strip the data URL
+          imageUrl: s.imageUrl ? (s.imageUrl.startsWith('data:') ? `idb:${s.id}` : s.imageUrl) : undefined,
+          imageFile: undefined,
         })),
       };
+
       try {
         localStorage.setItem(
           `slideviral-project-${project.id}`,
           JSON.stringify(lightweight),
         );
-      } catch (e) {
-        // If it still exceeds quota, save without any images
-        const minimal = {
-          ...project,
-          slides: project.slides.map((s) => ({
-            ...s,
-            imageUrl: undefined,
-            imageFile: undefined,
-          })),
-        };
-        try {
-          localStorage.setItem(
-            `slideviral-project-${project.id}`,
-            JSON.stringify(minimal),
-          );
-        } catch {
-          console.warn('Failed to save project: localStorage quota exceeded');
-          return;
-        }
+      } catch {
+        console.warn('Failed to save project to localStorage');
+        return;
       }
+
+      // Update project list
       const list = JSON.parse(localStorage.getItem('slideviral-projects') || '[]');
       const existing = list.findIndex((p: { id: string }) => p.id === project.id);
       const meta = { id: project.id, name: project.name, updatedAt: project.updatedAt };
       if (existing >= 0) list[existing] = meta;
       else list.push(meta);
       localStorage.setItem('slideviral-projects', JSON.stringify(list));
+
+      // Track last active project for auto-restore
+      localStorage.setItem('slideviral-last-project', project.id);
+
       set({ savedProjects: list });
     }
   },
 
-  loadProject: (id) => {
-    if (typeof window !== 'undefined') {
-      const raw = localStorage.getItem(`slideviral-project-${id}`);
-      if (raw) {
-        const slideshow = JSON.parse(raw) as Slideshow;
-        set({ slideshow, activeSlideIndex: 0 });
+  loadProject: async (id) => {
+    if (typeof window === 'undefined') return;
+
+    const raw = localStorage.getItem(`slideviral-project-${id}`);
+    if (!raw) return;
+
+    const slideshow = JSON.parse(raw) as Slideshow;
+
+    // Restore images from IndexedDB
+    const slideIds = slideshow.slides.map((s) => s.id);
+    const images = await loadProjectImages(id, slideIds);
+
+    // Rehydrate image URLs
+    const slides = slideshow.slides.map((s) => {
+      let imageUrl = s.imageUrl;
+      // If it's an idb marker, restore from IndexedDB
+      if (imageUrl?.startsWith('idb:')) {
+        const slideId = imageUrl.slice(4);
+        imageUrl = images[slideId] || undefined;
       }
-    }
+      // Also check by slide id directly
+      if (!imageUrl && images[s.id]) {
+        imageUrl = images[s.id];
+      }
+      return { ...s, imageUrl };
+    });
+
+    set({
+      slideshow: { ...slideshow, slides },
+      activeSlideIndex: 0,
+      hydrated: true,
+    });
+
+    // Track as last active
+    localStorage.setItem('slideviral-last-project', id);
   },
 
   deleteProject: (id) => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(`slideviral-project-${id}`);
+      deleteProjectImages(id).catch(() => {});
+
       const list = JSON.parse(localStorage.getItem('slideviral-projects') || '[]');
       const filtered = list.filter((p: { id: string }) => p.id !== id);
       localStorage.setItem('slideviral-projects', JSON.stringify(filtered));
+
+      // Clear last project if it was this one
+      if (localStorage.getItem('slideviral-last-project') === id) {
+        localStorage.removeItem('slideviral-last-project');
+      }
+
       set({ savedProjects: filtered });
     }
   },
@@ -317,7 +349,31 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
   loadProjectList: () => {
     if (typeof window !== 'undefined') {
       const list = JSON.parse(localStorage.getItem('slideviral-projects') || '[]');
+
+      // Also restore API keys
+      try {
+        const keys = localStorage.getItem('slideviral-api-keys');
+        if (keys) set({ apiKeys: JSON.parse(keys) });
+      } catch { /* ignore */ }
+
       set({ savedProjects: list });
     }
+  },
+
+  restoreLastProject: async () => {
+    if (typeof window === 'undefined') return;
+
+    const lastId = localStorage.getItem('slideviral-last-project');
+    if (lastId) {
+      await get().loadProject(lastId);
+    }
+
+    // Also restore API keys
+    try {
+      const keys = localStorage.getItem('slideviral-api-keys');
+      if (keys) set({ apiKeys: JSON.parse(keys) });
+    } catch { /* ignore */ }
+
+    set({ hydrated: true });
   },
 }));

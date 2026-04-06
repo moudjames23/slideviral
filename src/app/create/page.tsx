@@ -13,14 +13,15 @@ import { ExportDialog } from '@/components/editor/ExportDialog';
 
 function EditorContent() {
   const searchParams = useSearchParams();
-  const { applyTemplate, loadProject } = useSlideshowStore();
+  const { applyTemplate, loadProject, restoreLastProject } = useSlideshowStore();
   const saveProject = useSlideshowStore((s) => s.saveProject);
+  const hydrated = useSlideshowStore((s) => s.hydrated);
   const [showExport, setShowExport] = useState(false);
 
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Load template or project on mount
+  // Load template, project, or restore last session on mount
   useEffect(() => {
     const templateId = searchParams.get('template');
     const projectId = searchParams.get('project');
@@ -30,8 +31,11 @@ function EditorContent() {
       if (template) applyTemplate(template);
     } else if (projectId) {
       loadProject(projectId);
+    } else {
+      // No explicit template/project — restore the last active project
+      restoreLastProject();
     }
-  }, [searchParams, applyTemplate, loadProject]);
+  }, [searchParams, applyTemplate, loadProject, restoreLastProject]);
 
   // Auto-save every 30 seconds
   useEffect(() => {
