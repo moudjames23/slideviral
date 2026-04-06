@@ -59,7 +59,21 @@ export async function composeVideo(
 
   if (audioUrl) {
     try {
-      const proxyUrl = getPlayableAudioUrl(audioUrl);
+      // If Deezer URL, refresh it first (URLs expire after ~30min)
+      let resolvedAudioUrl = audioUrl;
+      if (audioUrl.includes('dzcdn.net') || audioUrl.includes('deezer')) {
+        try {
+          const audioName = (await import('@/lib/store')).useSlideshowStore.getState().selectedAudioName || '';
+          const query = audioName.replace(/\s*—\s*/g, ' ').trim();
+          if (query) {
+            const refreshRes = await fetch(`/api/refresh-audio?q=${encodeURIComponent(query)}`);
+            const refreshData = await refreshRes.json();
+            if (refreshData.previewUrl) resolvedAudioUrl = refreshData.previewUrl;
+          }
+        } catch { /* use existing URL */ }
+      }
+
+      const proxyUrl = getPlayableAudioUrl(resolvedAudioUrl);
       if (!proxyUrl) throw new Error('No audio URL');
 
       const audioResponse = await fetch(proxyUrl);

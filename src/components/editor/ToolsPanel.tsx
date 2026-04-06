@@ -165,7 +165,7 @@ export function ToolsPanel() {
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 mb-2">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (audioPreviewRef.current) {
                         audioPreviewRef.current.pause();
                       }
@@ -173,7 +173,25 @@ export function ToolsPanel() {
                         setIsPreviewPlaying(false);
                         return;
                       }
-                      const playUrl = getPlayableAudioUrl(selectedAudioUrl);
+
+                      let url = selectedAudioUrl;
+
+                      // If Deezer URL, try to refresh it first
+                      if (url && (url.includes('dzcdn.net') || url.includes('deezer'))) {
+                        try {
+                          const query = (selectedAudioName || '').replace(/\s*—\s*/g, ' ').trim();
+                          if (query) {
+                            const res = await fetch(`/api/refresh-audio?q=${encodeURIComponent(query)}`);
+                            const data = await res.json();
+                            if (data.previewUrl) {
+                              url = data.previewUrl;
+                              setSelectedAudio(url, selectedAudioName);
+                            }
+                          }
+                        } catch { /* use existing URL */ }
+                      }
+
+                      const playUrl = getPlayableAudioUrl(url);
                       if (!playUrl) return;
                       const audio = new Audio(playUrl);
                       audio.addEventListener('ended', () => setIsPreviewPlaying(false));

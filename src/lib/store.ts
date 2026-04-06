@@ -231,10 +231,7 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
           const sounds = (data.sounds || []) as Array<{ title: string; artist: string; previewUrl: string | null; trending: boolean }>;
           const best = sounds.find((s) => s.trending && s.previewUrl) || sounds.find((s) => s.previewUrl);
           if (best?.previewUrl) {
-            set({
-              selectedAudioUrl: best.previewUrl,
-              selectedAudioName: `${best.title} — ${best.artist}`,
-            });
+            get().setSelectedAudio(best.previewUrl, `${best.title} — ${best.artist}`);
           }
         })
         .catch(() => {});
