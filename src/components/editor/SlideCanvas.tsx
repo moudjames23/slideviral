@@ -232,17 +232,23 @@ export function SlideCanvas() {
         )}
       </div>
 
-      {/* Slide info */}
-      <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+      {/* Slide info + preview button */}
+      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('slideviral:toggle-preview'))}
+          className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-primary font-medium transition-colors hover:bg-primary/20"
+        >
+          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Preview
+        </button>
+        <span className="text-border">·</span>
         <span>
-          Slide {activeSlideIndex + 1} / {slideshow.slides.length}
+          Slide {activeSlideIndex + 1}/{slideshow.slides.length}
         </span>
-        <span className="text-border">|</span>
+        <span className="text-border">·</span>
         <span>{activeSlide.duration}s</span>
-        <span className="text-border">|</span>
+        <span className="text-border">·</span>
         <span>{slideshow.aspectRatio}</span>
-        <span className="text-border">|</span>
-        <span>{ratio.width} x {ratio.height}</span>
       </div>
     </div>
   );

@@ -68,11 +68,16 @@ export default function CreatePage() {
     return () => clearInterval(interval);
   }, [saveProject, ready]);
 
-  // Listen for export toggle from header
+  // Listen for export/preview toggle events
   useEffect(() => {
-    const handler = () => setShowExport((prev) => !prev);
-    window.addEventListener('slideviral:toggle-export', handler);
-    return () => window.removeEventListener('slideviral:toggle-export', handler);
+    const exportHandler = () => setShowExport((prev) => !prev);
+    const previewHandler = () => setShowPreview((prev) => !prev);
+    window.addEventListener('slideviral:toggle-export', exportHandler);
+    window.addEventListener('slideviral:toggle-preview', previewHandler);
+    return () => {
+      window.removeEventListener('slideviral:toggle-export', exportHandler);
+      window.removeEventListener('slideviral:toggle-preview', previewHandler);
+    };
   }, []);
 
   if (!ready) {
@@ -91,15 +96,6 @@ export default function CreatePage() {
         <ToolsPanel />
       </div>
       <SlideTimeline />
-
-      {/* Preview button — floating above timeline */}
-      <button
-        onClick={() => setShowPreview(true)}
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105"
-      >
-        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        Preview
-      </button>
 
       <ExportDialog open={showExport} onClose={() => setShowExport(false)} />
       <PreviewPlayer open={showPreview} onClose={() => setShowPreview(false)} />
