@@ -45,18 +45,19 @@ export async function composeVideo(
   outputCanvas.height = height;
   const ctx = outputCanvas.getContext('2d')!;
 
-  // Start recording — captureStream(0) means manual frame pushing
-  const stream = outputCanvas.captureStream(0);
-  const videoTrack = stream.getVideoTracks()[0];
+  // Capture video stream from canvas
+  const canvasStream = outputCanvas.captureStream(0);
+  const videoTrack = canvasStream.getVideoTracks()[0];
   // @ts-expect-error - requestFrame is available on CanvasCaptureMediaStreamTrack
   const requestFrame = videoTrack.requestFrame?.bind(videoTrack);
 
-  // Mix in audio if provided
+  // Prepare audio if provided
   let audioCtx: AudioContext | null = null;
   let audioSourceNode: AudioBufferSourceNode | null = null;
+  let audioTrack: MediaStreamTrack | null = null;
+
   if (audioUrl) {
     try {
-      // Fetch audio through proxy to avoid CORS
       const proxyUrl = getPlayableAudioUrl(audioUrl);
       if (!proxyUrl) throw new Error('No audio URL');
 
@@ -64,26 +65,36 @@ export async function composeVideo(
       const audioArrayBuffer = await audioResponse.arrayBuffer();
 
       audioCtx = new AudioContext();
+      // Resume context in case it's suspended (autoplay policy)
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+
       const audioBuffer = await audioCtx.decodeAudioData(audioArrayBuffer);
 
       const dest = audioCtx.createMediaStreamDestination();
       audioSourceNode = audioCtx.createBufferSource();
       audioSourceNode.buffer = audioBuffer;
       audioSourceNode.connect(dest);
+      // Also connect to speakers so the context stays active
+      audioSourceNode.connect(audioCtx.destination);
 
-      // Add audio track to the recording stream
-      const audioTrack = dest.stream.getAudioTracks()[0];
-      if (audioTrack) stream.addTrack(audioTrack);
+      audioTrack = dest.stream.getAudioTracks()[0] || null;
 
       onProgress?.({ phase: 'rendering', percent: 35, message: 'Audio loaded...' });
     } catch (e) {
-      console.warn('Could not add audio to export:', e);
+      console.warn('Could not prepare audio for export:', e);
       audioCtx = null;
       audioSourceNode = null;
+      audioTrack = null;
     }
   }
 
-  const mediaRecorder = new MediaRecorder(stream, {
+  // Build a combined MediaStream with video + audio tracks
+  // IMPORTANT: must be done BEFORE creating MediaRecorder
+  const combinedStream = new MediaStream();
+  combinedStream.addTrack(videoTrack);
+  if (audioTrack) combinedStream.addTrack(audioTrack);
+
+  const mediaRecorder = new MediaRecorder(combinedStream, {
     mimeType: getSupportedMimeType(),
     videoBitsPerSecond: 8_000_000,
   });
@@ -142,7 +153,7 @@ export async function composeVideo(
       }
       setTimeout(() => {
         mediaRecorder.stop();
-        stream.getTracks().forEach((t) => t.stop());
+        combinedStream.getTracks().forEach((t) => t.stop());
       }, 300);
     });
   });
