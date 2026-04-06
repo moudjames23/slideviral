@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSlideshowStore } from '@/lib/store';
 import { trendTemplates } from '@/lib/templates/registry';
@@ -9,12 +9,13 @@ import { SlideCanvas } from '@/components/editor/SlideCanvas';
 import { SlideSettings } from '@/components/editor/SlideSettings';
 import { ToolsPanel } from '@/components/editor/ToolsPanel';
 import { SlideTimeline } from '@/components/editor/SlideTimeline';
+import { ExportDialog } from '@/components/editor/ExportDialog';
 
 function EditorContent() {
   const searchParams = useSearchParams();
   const { applyTemplate, loadProject } = useSlideshowStore();
-
   const saveProject = useSlideshowStore((s) => s.saveProject);
+  const [showExport, setShowExport] = useState(false);
 
   // Keyboard shortcuts
   useKeyboardShortcuts();
@@ -40,12 +41,24 @@ function EditorContent() {
     return () => clearInterval(interval);
   }, [saveProject]);
 
+  // Listen for export toggle from header
+  useEffect(() => {
+    function handleToggleExport() {
+      setShowExport((prev) => !prev);
+    }
+    window.addEventListener('slideviral:toggle-export', handleToggleExport);
+    return () => window.removeEventListener('slideviral:toggle-export', handleToggleExport);
+  }, []);
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem-5rem)] overflow-hidden">
-      <SlideSettings />
-      <SlideCanvas />
-      <ToolsPanel />
-    </div>
+    <>
+      <div className="flex h-[calc(100vh-3.5rem-5rem)] overflow-hidden">
+        <SlideSettings />
+        <SlideCanvas />
+        <ToolsPanel />
+      </div>
+      <ExportDialog open={showExport} onClose={() => setShowExport(false)} />
+    </>
   );
 }
 

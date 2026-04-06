@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Sparkles, LayoutGrid, Download, Plus } from 'lucide-react';
 
-const nav = [
-  { href: '/templates', label: 'Templates', icon: LayoutGrid },
-  { href: '/create', label: 'Editor', icon: Sparkles },
-  { href: '/export', label: 'Export', icon: Download },
-];
-
 export function Header() {
   const pathname = usePathname();
+  const isEditor = pathname === '/create' || pathname.startsWith('/create?');
+
+  const navItems = [
+    { href: '/templates', label: 'Templates', icon: LayoutGrid },
+    { href: '/create', label: 'Editor', icon: Sparkles },
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -24,7 +24,7 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-1">
-          {nav.map(({ href, label, icon: Icon }) => {
+          {navItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
@@ -43,6 +43,21 @@ export function Header() {
               </Link>
             );
           })}
+
+          {/* Export button — opens dialog when in editor, navigates to /export otherwise */}
+          <button
+            onClick={() => {
+              if (isEditor) {
+                window.dispatchEvent(new CustomEvent('slideviral:toggle-export'));
+              } else {
+                window.location.href = '/export';
+              }
+            }}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
 
           <Link
             href="/create"
