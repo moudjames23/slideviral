@@ -33,7 +33,7 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onClose }: ExportDialogProps) {
-  const { slideshow, exportConfig, setExportConfig } = useSlideshowStore();
+  const { slideshow, exportConfig, setExportConfig, selectedAudioUrl } = useSlideshowStore();
   const [progress, setProgress] = useState<VideoProgress | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +65,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
     setProgress({ phase: 'rendering', percent: 0, message: 'Starting...' });
 
     try {
-      const blob = await composeVideo(slideshow.slides, slideshow.aspectRatio, setProgress);
+      const blob = await composeVideo(slideshow.slides, slideshow.aspectRatio, setProgress, selectedAudioUrl);
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
       downloadBlob(blob, `${slideshow.name}.${ext}`);
     } catch (err) {

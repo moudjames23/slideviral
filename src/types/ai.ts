@@ -84,3 +84,13 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     ],
   },
 ];
+
+/** Separate config for audio API */
+export const AUDIO_PROVIDER: AIProviderConfig = {
+  type: 'fal' as AIProviderType, // unused but required by the interface
+  name: 'Freesound',
+  description: 'Free CC-licensed sounds for slideshow audio',
+  keyName: 'FREESOUND_API_KEY',
+  docsUrl: 'https://freesound.org/apiv2/apply',
+  models: [],
+};

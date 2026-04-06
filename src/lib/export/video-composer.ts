@@ -18,6 +18,7 @@ export async function composeVideo(
   slides: Slide[],
   aspectRatio: AspectRatio,
   onProgress?: (progress: VideoProgress) => void,
+  audioUrl?: string | null,
 ): Promise<Blob> {
   const { width, height } = ASPECT_RATIOS[aspectRatio];
   const fps = 30;
@@ -49,6 +50,25 @@ export async function composeVideo(
   // @ts-expect-error - requestFrame is available on CanvasCaptureMediaStreamTrack
   const requestFrame = videoTrack.requestFrame?.bind(videoTrack);
 
+  // Mix in audio if provided
+  let audioElement: HTMLAudioElement | null = null;
+  if (audioUrl) {
+    try {
+      audioElement = new Audio(audioUrl);
+      audioElement.crossOrigin = 'anonymous';
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaElementSource(audioElement);
+      const dest = audioCtx.createMediaStreamDestination();
+      source.connect(dest);
+      // Add audio track to the recording stream
+      const audioTrack = dest.stream.getAudioTracks()[0];
+      if (audioTrack) stream.addTrack(audioTrack);
+    } catch {
+      console.warn('Could not add audio to export');
+      audioElement = null;
+    }
+  }
+
   const mediaRecorder = new MediaRecorder(stream, {
     mimeType: getSupportedMimeType(),
     videoBitsPerSecond: 8_000_000,
@@ -74,6 +94,12 @@ export async function composeVideo(
 
     mediaRecorder.start(100); // collect data every 100ms
 
+    // Start audio playback in sync with recording
+    if (audioElement) {
+      audioElement.currentTime = 0;
+      audioElement.play().catch(() => {});
+    }
+
     onProgress?.({ phase: 'encoding', percent: 30, message: 'Encoding video...' });
 
     // Animate slides with real-time frame pacing
@@ -94,6 +120,11 @@ export async function composeVideo(
         });
       },
     ).then(() => {
+      // Stop audio
+      if (audioElement) {
+        audioElement.pause();
+        audioElement = null;
+      }
       setTimeout(() => {
         mediaRecorder.stop();
         stream.getTracks().forEach((t) => t.stop());

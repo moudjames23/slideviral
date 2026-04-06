@@ -57,6 +57,11 @@ interface SlideshowState {
   setAiProvider: (provider: AIProviderType) => void;
   setApiKey: (provider: string, key: string) => void;
 
+  // Audio
+  selectedAudioUrl: string | null;
+  selectedAudioName: string | null;
+  setSelectedAudio: (url: string | null, name: string | null) => void;
+
   // Export
   exportConfig: ExportConfig;
   setExportConfig: (config: Partial<ExportConfig>) => void;
@@ -234,6 +239,14 @@ export const useSlideshowStore = create<SlideshowState>((set, get) => ({
       }
       return { apiKeys };
     });
+  },
+
+  // Audio
+  selectedAudioUrl: null,
+  selectedAudioName: null,
+
+  setSelectedAudio: (url, name) => {
+    set({ selectedAudioUrl: url, selectedAudioName: name });
   },
 
   // Export

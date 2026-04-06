@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Key, ExternalLink, Check, Eye, EyeOff } from 'lucide-react';
 import { useSlideshowStore } from '@/lib/store';
-import { AI_PROVIDERS } from '@/types';
+import { AI_PROVIDERS, AUDIO_PROVIDER } from '@/types';
 
 interface SettingsPanelProps {
   open: boolean;
@@ -71,7 +71,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           </p>
 
           <div className="space-y-5">
-            {AI_PROVIDERS.map((provider) => {
+            {[...AI_PROVIDERS, AUDIO_PROVIDER].map((provider) => {
               const value = localKeys[provider.keyName] ?? '';
               const hasKey = !!value;
               const isVisible = visibleKeys[provider.keyName] ?? false;

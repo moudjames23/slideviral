@@ -31,7 +31,7 @@ const formatOptions: { value: ExportFormat; label: string; desc: string; icon: t
 ];
 
 export default function ExportPage() {
-  const { slideshow, exportConfig, setExportConfig } = useSlideshowStore();
+  const { slideshow, exportConfig, setExportConfig, selectedAudioUrl } = useSlideshowStore();
   const [progress, setProgress] = useState<VideoProgress | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +67,7 @@ export default function ExportPage() {
         slideshow.slides,
         slideshow.aspectRatio,
         setProgress,
+        selectedAudioUrl,
       );
 
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
